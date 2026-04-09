@@ -1,63 +1,75 @@
-# app.py
 import streamlit as st
-import yaml
 import requests
+import yaml
 import time
 
-# -------------------------
-# Your existing agent logic
-# -------------------------
-def fetch_manifest(url):
-    st.info("Fetching manifest from GitHub...")
-    response = requests.get(url)
-    return yaml.safe_load(response.text)
+st.set_page_config(page_title="GitOps Agent", page_icon="🚀", layout="wide")
 
-def deploy(cluster, manifest):
-    st.write(f"Deploying to {cluster['name']} ({cluster['provider']})")
-    st.write(f"Application: {manifest['metadata']['name']}")
-    st.write(f"Replicas: {manifest['spec']['replicas']}")
-    st.success(f"Deployment to {cluster['name']} simulated successfully!")
+# -------------------- Sidebar --------------------
+st.sidebar.title("GitOps Agent Control Panel")
+repo_url = st.sidebar.text_input(
+    "Deployment YAML URL",
+    "https://raw.githubusercontent.com/revanthjoshua/gitops-agent/main/deployment.yaml"
+)
+interval = st.sidebar.number_input("Check interval (seconds)", min_value=5, max_value=60, value=10)
 
-# -------------------------
-# Streamlit UI
-# -------------------------
-st.title("Multi-Cloud GitOps Agent Demo")
+# Simulated clusters
+clusters = [
+    {"name": "Cluster-A", "provider": "GKE"},
+    {"name": "Cluster-B", "provider": "EKS"},
+    {"name": "Cluster-C", "provider": "AKS"},
+]
+
+selected_clusters = st.sidebar.multiselect(
+    "Select clusters to deploy", [c["name"] for c in clusters], default=[c["name"] for c in clusters]
+)
+
+st.title("🚀 GitOps Agent Simulator")
 st.markdown("""
-This demo simulates a GitOps control plane that detects changes in a Kubernetes manifest on GitHub 
-and deploys it to multiple clusters (simulated).
+This app simulates a GitOps agent deploying a Kubernetes manifest to multiple clusters.
+It automatically detects changes in your YAML file and triggers deployments.
 """)
 
-# Load config
-with open("config.yaml") as f:
-    config = yaml.safe_load(f)
+# -------------------- Helper Functions --------------------
+def fetch_manifest(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return yaml.safe_load(response.text)
+    except Exception as e:
+        st.error(f"Error fetching YAML: {e}")
+        return None
 
-st.subheader("Connected Clusters")
-for cluster in config["clusters"]:
-    st.write(f"- {cluster['name']} ({cluster['provider']})")
+def deploy(cluster, manifest):
+    st.info(f"Deploying **{manifest['metadata']['name']}** to **{cluster['name']} ({cluster['provider']})**")
+    st.success(f"Deployment to {cluster['name']} simulated successfully!")
 
-# GitHub repo input
-repo_url = st.text_input("GitHub manifest URL:", config.get("repo_url", ""))
+# -------------------- Main Logic --------------------
+if "last_manifest" not in st.session_state:
+    st.session_state.last_manifest = None
 
-# Button to trigger sync
-if st.button("Run GitOps Sync"):
-    if not repo_url:
-        st.error("Please provide the GitHub manifest URL!")
-    else:
+placeholder = st.empty()
+
+with placeholder.container():
+    while True:
         manifest = fetch_manifest(repo_url)
-        st.code(manifest, language="yaml")
+        if manifest is None:
+            st.warning("Waiting for a valid deployment YAML...")
+            time.sleep(interval)
+            continue
 
-        # Load last_state.yaml to detect changes
-        try:
-            with open("last_state.yaml") as f:
-                old_manifest = yaml.safe_load(f)
-        except:
-            old_manifest = None
-
-        if old_manifest != manifest:
-            st.success("Change detected! Triggering GitOps sync...")
-            for cluster in config["clusters"]:
-                deploy(cluster, manifest)
-            with open("last_state.yaml", "w") as f:
-                yaml.dump(manifest, f)
+        if st.session_state.last_manifest != manifest:
+            st.subheader("💡 Change detected! Triggering GitOps sync...")
+            for cluster in clusters:
+                if cluster["name"] in selected_clusters:
+                    deploy(cluster, manifest)
+            st.session_state.last_manifest = manifest
         else:
             st.info("No changes detected. Clusters are up-to-date.")
+
+        # Display clusters table
+        st.table(clusters)
+
+        st.markdown(f"Next check in {interval} seconds...")
+        time.sleep(interval)
+        placeholder.empty()
