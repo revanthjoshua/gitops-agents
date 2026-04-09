@@ -1,0 +1,9 @@
+repo_url: "https://raw.githubusercontent.com/revanthjoshua/gitops-agent/refs/heads/main/deployment.yaml"
+
+clusters:
+  - name: "GKE-Cluster"
+    provider: "GCP"
+  - name: "EKS-Cluster"
+    provider: "AWS"
+  - name: "AKS-Cluster"
+    provider: "Azure"
