@@ -1,4 +1,4 @@
-repo_url: "https://raw.githubusercontent.com/revanthjoshua/gitops-agent/refs/heads/main/deployment.yaml"
+repo_url: "https://raw.githubusercontent.com/revanthjoshua/gitops-agents/refs/heads/main/deployment.yaml"
 
 clusters:
   - name: "GKE-Cluster"
