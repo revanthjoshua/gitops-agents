@@ -11,7 +11,7 @@ st.sidebar.title("GitOps Agent Control Panel")
 # YAML URL
 repo_url = st.sidebar.text_input(
     "Deployment YAML URL",
-    "https://raw.githubusercontent.com/revanthjoshua/gitops-agent/main/deployment.yaml"
+    "https://raw.githubusercontent.com/revanthjoshua/gitops-agents/main/deployment.yaml"
 )
 
 # Deployment interval
